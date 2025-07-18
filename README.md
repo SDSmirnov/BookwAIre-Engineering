@@ -167,6 +167,7 @@ https://github.com/SDSmirnov/ai-prompts/blob/main/Novel-Writing-Automated-Script
 ```
 
 -----
+### Фактически, это Writing Guides, переведенные в формат LLM промптов
 
 ### Как это работает (логика DAG)
 
