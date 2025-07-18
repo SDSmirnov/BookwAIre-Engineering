@@ -1,6 +1,6 @@
 # Свалка разных текстов, сгенерированных ИИ только по синопсисам
 
-https://github.com/SDSmirnov/BookwAIre-Engineering/blob/main/enhanced_nove_generator.py
+Итоговый скрипт: https://github.com/SDSmirnov/BookwAIre-Engineering/blob/main/enhanced_novel_generator.py
 
 Началось всё с очень весёлой книги, рекомендую: https://author.today/work/455973
 
