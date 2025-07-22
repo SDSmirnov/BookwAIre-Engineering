@@ -109,7 +109,7 @@ class NovelGenerator:
         self.world_model = genai.GenerativeModel(
             model_name="gemini-2.5-flash",
             system_instruction=world_context,
-            safety_settings=SAFETY_SETTINGS
+            safety_settings=SAFETY_SETTINGS,
         )
         print("✓ Создана модель с контекстом 'Библии Мира'")
 
@@ -141,17 +141,6 @@ class NovelGenerator:
             else:
                 print("   ! Не удалось выполнить запрос к API после нескольких попыток.")
                 return None
-
-    def _extract_scenes(self, scene_plan_text):
-        """Извлекает пронумерованный список сцен из текста."""
-        # Ищем пронумерованные пункты, которые являются сценами
-        # Этот паттерн ищет строки, начинающиеся с числа и точки.
-        scenes = re.findall(r'^\d+\.\s.*', scene_plan_text, re.MULTILINE)
-        if not scenes: # Если не найдено, пробуем искать пункты-маркеры
-            scenes = re.findall(r'^[\*\-]\s.*', scene_plan_text, re.MULTILINE)
-
-        print(f"  > Найдено {len(scenes)} сцен.")
-        return scenes if scenes else [scene_plan_text] # Возвращаем весь текст если не нашли сцен
 
     def create_foundation(self, synopsis):
         """Этап 1: Создание 'Библии Мира'."""
@@ -641,7 +630,7 @@ if __name__ == "__main__":
         # 1. Создаем фундамент
         generator.create_foundation(SYNOPSIS)
 
-        if not generator.scenes:
+        if not generator.world_bible['chapters']:
             print("! Не удалось извлечь сцены из плана сюжета. Генерация остановлена.")
         else:
             # 2. Генерируем роман
