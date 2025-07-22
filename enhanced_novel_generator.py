@@ -4,6 +4,7 @@ import numpy as np
 import os
 import re
 import random
+import json
 
 # --- КОНФИГУРАЦИЯ ---
 # Вставьте сюда ваш API ключ от Google AI Studio
@@ -14,11 +15,12 @@ ALLOW_MATURE_LANGUAGE = True  # Разрешить использование с
 
 # Вставьте ваш синопсис здесь
 SYNOPSIS = """
-В 2025 году в Санкт-Петербурге следователь-оборотень Петр Иванов должен раскрыть серию ужасных убийств, совершенных котами-людоедами, чтобы остановить зловещий заговор заместителя губернатора Сидора Петрова, пока его собственная звериная сущность не поглотила его.
+В 2025 году в Санкт-Петербурге следователь-оборотень Петр Иванов должен раскрыть серию ужасных убийств, совершенных котами-людоедами, чтобы остановить зловещий заговор заместителя губернатора Дмитрия Говорова, пока его собственная звериная сущность не поглотила его.
 
 Ключевые персонажи:
-    Петр Иванов: 40 лет, следователь, главный герой, волк-оборотень. Его первоначальная роль — расследовать преступления.
-    Сидор Петров: Заместитель губернатора, главный злодей. Его первоначальная роль — высокопоставленный чиновник, скрывающий свою истинную природу и мотивы.
+    Петр Алексеевич Иванов: 40 лет, следователь, главный герой, волк-оборотень. Его первоначальная роль — расследовать преступления.
+    Дмитрий Степанович Говоров: Заместитель губернатора, главный злодей. Его первоначальная роль — высокопоставленный чиновник, скрывающий свою истинную природу и мотивы.
+    Анна: 35 лет, девушка Петра Иванова, художник
 
 Сеттинг:
     Время: 2025 год. Это позволяет использовать современные технологии и реалии, но также добавляет элемент футуризма или технологического упадка, если это будет необходимо для атмосферы.
@@ -56,7 +58,7 @@ class NovelGenerator:
     Класс для автоматической генерации романа с использованием Gemini API.
     Реализует DAG-пайплайн: Фундамент -> План -> Черновик -> Редактура.
     """
-    def __init__(self, api_key, model_name="gemini-2.5-pro"):
+    def __init__(self, api_key, model_name="gemini-2.5-flash"):
         genai.configure(api_key=api_key)
         # Создаем базовую модель без system instruction
         self.base_model = genai.GenerativeModel(model_name)
@@ -105,9 +107,10 @@ class NovelGenerator:
 """
 
         self.world_model = genai.GenerativeModel(
-            model_name="gemini-2.5-pro",
+            model_name="gemini-2.5-flash",
             system_instruction=world_context,
             safety_settings=SAFETY_SETTINGS,
+            max_output_tokens=100000,
         )
         print("✓ Создана модель с контекстом 'Библии Мира'")
 
@@ -124,6 +127,7 @@ class NovelGenerator:
                 temperature=temperature,
                 top_p=top_p,
                 top_k=top_k,
+                max_output_tokens=100000,
             )
             response = model.generate_content(prompt_text, generation_config=generation_config, safety_settings=SAFETY_SETTINGS,)
             # Добавлена задержка, чтобы не превышать лимиты запросов
@@ -173,6 +177,24 @@ class NovelGenerator:
         Синопсис: "{synopsis}"
         """
         self.world_bible['analysis'] = self._call_gemini(prompt_1_1, temperature=1.0, top_p=0.9, top_k=60)
+
+        json_out = """
+        {
+            "chapters": [
+                {
+                    "number": "1",
+                    "title": "Глава 1",
+                    "scenes": [
+                        "Сцена 1. Описание сцены 30-60 слов",
+                        "Сцена 2. Описание сцены 30-60 слов",
+                        "Сцена 3. Описание сцены 30-60 слов",
+                        ...
+                    ]
+                },
+                ....
+            ]
+        }
+        """
 
         # 1.2 Анкеты персонажей
         prompt_1_2 = f"""
@@ -264,15 +286,18 @@ class NovelGenerator:
         # 1.5 План сюжета (список сцен)
         prompt_1_5 = f"""
         На основе всей 'Библии Мира', создай расширенный план сюжета в виде
-        пронумерованного списка из {NUM_CHAPTERS * 3} ключевых сцен,
+        пронумерованного списка из {NUM_CHAPTERS * 3}-{NUM_CHAPTERS * 4} ключевых сцен с разбивкой по {NUM_CHAPTERS} главам,
         которые последовательно раскрывают историю от начала до конца.
-        Строгий формат ответа:
-        [номер]. [Описание сцены в одну строку]
+        Количество сцен на главу от 2 до 5, может варьироваться для сохранения цельности чтения и сюжета.
+        Строгий формат ответа JSON:
+        {json_out}
+
         'Библия Мира':
         {self.world_bible}
         """
         scene_plan = self._call_gemini(prompt_1_5, temperature=0.7, top_p=0.85, top_k=35)
-        self.scenes = self._extract_scenes(scene_plan)
+        scene_plan = scene_plan.replace('```json', '').replace('```', '')
+        self.world_bible['chapters'] = json.loads(scene_plan)['chapters']
 
         # Создаем модель с контекстом после завершения "Библии Мира"
         self._create_world_model()
@@ -282,16 +307,10 @@ class NovelGenerator:
         final_chapters_text = []
         chapter_summaries = []  # Добавляем историю глав
 
-        # Распределяем сцены по главам
-        scene_chunks = np.array_split(self.scenes, num_chapters)
-
-        scenery = {}
-        for i, chapter_scenes in enumerate(scene_chunks):
-            scenery[f'Глава {i+1}'] = list(chapter_scenes)
-        self.world_bible['chapters'] = scenery
-
-        for i, chapter_scenes in enumerate(scene_chunks):
+        for i, chapter in enumerate(self.world_bible['chapters']):
             chapter_num = i + 1
+            chapter_scenes = chapter['scenes']
+
             print(f"\n--- ГЕНЕРАЦИЯ ГЛАВЫ {chapter_num}/{num_chapters} ---")
 
             chapter_scenes_str = "\n".join(chapter_scenes)
