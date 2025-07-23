@@ -29,6 +29,11 @@ SYNOPSIS = """
 
 """
 
+def log_chapter(kind, number, text):
+    f = open(f"chapter_{kind}_{number:02}.md", "w")
+    f.write(text)
+    f.close()
+
 # Укажите желаемое количество глав
 NUM_CHAPTERS = 12
 # --- КОНЕЦ КОНФИГУРАЦИИ ---
@@ -105,7 +110,7 @@ class NovelGenerator:
 
 При работе над каждой задачей учитывай весь контекст выше, даже если он не упоминается в конкретном запросе.
 """
-
+        log_chapter('bible', 0, world_context)
         self.world_model = genai.GenerativeModel(
             model_name="gemini-2.5-pro",
             system_instruction=world_context,
@@ -333,6 +338,7 @@ class NovelGenerator:
             {previous_context}
             """
             chapter_plan = self._call_gemini(prompt_2, temperature=0.8, top_p=0.85, top_k=40, use_world_model=True)
+            log_chapter('plan', chapter_num, chapter_plan)
 
             # Этап 3: Черновик главы
             print(f"- Этап 3: Написание черновика Главы {chapter_num}")
@@ -409,6 +415,7 @@ class NovelGenerator:
             {chapter_plan}
             """
             draft = self._call_gemini(prompt_3, temperature=0.9, top_p=0.95, top_k=60, use_world_model=True)
+            log_chapter('draft', chapter_num, draft)
 
             # Этап 4.1: Критический анализ с детальными проверками
             print(f"- Этап 4.1: Критический анализ Главы {chapter_num}")
@@ -490,6 +497,7 @@ class NovelGenerator:
 
             """
             critique = self._call_gemini(prompt_4_1, temperature=0.6, top_p=0.8, top_k=25, use_world_model=True)
+            log_chapter('critique', chapter_num, critique)
 
             # Этап 4.2: Внесение правок
             print(f"- Этап 4.2: Редактура и финальная версия Главы {chapter_num}")
@@ -528,6 +536,7 @@ class NovelGenerator:
             {draft}
             """
             edited_chapter = self._call_gemini(prompt_4_2, temperature=0.7, top_p=0.85, top_k=35, use_world_model=True)
+            log_chapter('edited', chapter_num, edited_chapter)
 
             # Этап 4.3: Стилистическая обработка + создание резюме
             print(f"- Этап 4.3: Стилистическая обработка и резюме Главы {chapter_num}")
@@ -632,6 +641,8 @@ class NovelGenerator:
             - Читатель должен хотеть узнать, что будет дальше
             - Финал главы должен создавать напряжённое ожидание
 
+            ОБЪЕМ: примерно 4000 слов.
+
             {mature_language_instruction}
 
             ---
@@ -646,6 +657,7 @@ class NovelGenerator:
             """
 
             enriched_chapter = self._call_gemini(prompt_4_2_5, temperature=0.9, top_p=0.95, top_k=60, use_world_model=True)
+            log_chapter('enriched', chapter_num, enriched_chapter)
 
             prompt_4_3 = f"""
             Ты — опытный литературный редактор, специализирующийся на устранении следов машинной генерации
@@ -743,6 +755,7 @@ class NovelGenerator:
                 chapter_summaries.append(f"Глава {chapter_num}: {simple_summary}")
 
             final_chapters_text.append(f"# Глава {chapter_num}\n\n{final_chapter}")
+            log_chapter('final', chapter_num, final_chapter)
             print(f"✓ Глава {chapter_num} успешно сгенерирована.")
 
         return "\n\n---\n\n".join(final_chapters_text)
