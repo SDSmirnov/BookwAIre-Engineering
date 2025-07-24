@@ -13,7 +13,7 @@
 - **"Отель 'Последний шанс'"** - психологическая драма, собраны промежуточные версии. Читать вариант **enriched**
 - **"Реставратор"** - детектив, исправленный промпт 4_3 "Стилист". Читать вариант **out**
 
-Итоговый скрипт: (enhanced_novel_generator.py)[enhanced_novel_generator.py]
+Итоговый скрипт: (enhanced_novel_generator.py)[./enhanced_novel_generator.py]
 
 Началось всё с очень весёлой книги, рекомендую: https://author.today/work/455973
 
